@@ -4,9 +4,7 @@ use clap::{Parser, Subcommand};
 use rustls::crypto::CryptoProvider;
 
 mod commands;
-mod cri;
 mod daemon;
-mod dns;
 mod network;
 mod quic;
 mod task;

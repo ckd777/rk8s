@@ -1,10 +1,8 @@
 pub mod commands;
 pub mod daemon;
 pub mod network;
-pub mod task;
-//mod status_access;
-mod dns;
 mod quic;
+pub mod task;
 
 // re-export selected public API
 pub use commands::compose::{ComposeCommand, compose_execute};

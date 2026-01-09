@@ -2,7 +2,6 @@ use crate::{
     commands::{
         Exec, ExecContainer,
         compose::network::{BRIDGE_CONF, CliNetworkConfig, STD_CONF_PATH},
-        container::config::ContainerConfigBuilder,
         create, delete, exec, list, load_container, start,
         volume::parse_key_val,
     },
@@ -19,6 +18,7 @@ use libcontainer::{
     error::LibcontainerError,
 };
 use liboci_cli::{Create, Delete, List, Start};
+use libruntime::cri::config::ContainerConfigBuilder;
 use libruntime::oci;
 use libruntime::rootpath;
 use libruntime::utils::{ImageType, determine_image, handle_oci_image};
@@ -44,7 +44,6 @@ use std::{
 use tabwriter::TabWriter;
 use tracing::{debug, info, warn};
 
-pub mod config;
 struct RkbImagePuller {}
 
 impl ImagePuller for RkbImagePuller {

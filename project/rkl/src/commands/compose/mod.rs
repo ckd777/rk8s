@@ -26,10 +26,10 @@ use crate::{
         },
         container::{ContainerRunner, remove_container},
         delete, list,
-        volume::{PatternType, VolumeManager, VolumeMetadata, VolumePattern, string_to_pattern},
     },
-    rootpath,
 };
+use libruntime::volume::{PatternType, VolumeManager, VolumeMetadata, VolumePattern, string_to_pattern};
+use libruntime::rootpath;
 use common::{ContainerSpec, Port};
 type ComposeAction = Box<dyn FnOnce(&mut ComposeManager) -> Result<()>>;
 

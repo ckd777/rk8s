@@ -1,8 +1,9 @@
-use crate::{copy, image, login, logout, overlayfs, pull, push, repo, run};
+use crate::{copy, image, login, logout, overlayfs, pull, push, repo, run,};
+use crate::commands::{ContainerCommand, ComposeCommand, PodCommand, VolumeCommand};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
-#[command(name = "rkb", about = "A simple container image builder")]
+#[command(name = "rkb", about = "A container runtime and management tool")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
@@ -12,6 +13,12 @@ pub struct Cli {
 pub enum Commands {
     /// Build a container image from Dockerfile
     Build(image::BuildArgs),
+    /// Manage containers
+    #[command(subcommand)]
+    Container(ContainerCommand),
+    /// Manage container compositions
+    #[command(subcommand)]
+    Compose(ComposeCommand),
     #[command(hide = true)]
     Cleanup(overlayfs::CleanupArgs),
     #[command(hide = true)]
@@ -26,8 +33,14 @@ pub enum Commands {
     Pull(pull::PullArgs),
     /// Push an image to specific distribution server.
     Push(push::PushArgs),
+    /// Manage pods
+    #[command(subcommand)]
+    Pod(PodCommand),
     /// List and manage repositories
     Repo(repo::RepoArgs),
     #[command(hide = true)]
     Run(run::RunArgs),
+    /// Manage volumes
+    #[command(subcommand)]
+    Volume(VolumeCommand),
 }

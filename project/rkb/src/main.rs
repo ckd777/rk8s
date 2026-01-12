@@ -3,6 +3,7 @@
 // For Buck2 build compatibility,
 // all modules need to be declared in `main.rs` as well (refer to `lib.rs`).
 mod args;
+mod commands;
 mod compressor;
 mod config;
 mod copy;
@@ -19,8 +20,8 @@ mod run;
 mod storage;
 mod task;
 mod utils;
-
 use crate::args::{Cli, Commands};
+use crate::commands::{compose, container, pod, volume};
 use anyhow::Result;
 use clap::Parser;
 use tracing_subscriber::prelude::*;
@@ -35,13 +36,17 @@ fn main() -> Result<()> {
     match cli.command {
         Commands::Build(args) => image::build_image(&args),
         Commands::Cleanup(args) => overlayfs::cleanup(args),
+        Commands::Container(cmd) => container::container_execute(cmd),
+        Commands::Compose(cmd) => compose::compose_execute(cmd),
         Commands::Copy(args) => copy::copy(args),
         Commands::Login(args) => login::login(args),
         Commands::Logout(args) => logout::logout(args),
         Commands::Mount(args) => overlayfs::do_mount(args),
+        Commands::Pod(cmd) => pod::pod_execute(cmd),
         Commands::Pull(args) => pull::pull(args),
         Commands::Push(args) => push::push(args),
         Commands::Repo(args) => repo::repo(args),
         Commands::Run(args) => run::run(args),
+        Commands::Volume(cmd) => volume::volume_execute(cmd),
     }
 }

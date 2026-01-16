@@ -138,8 +138,10 @@ impl PodInfo {
 pub fn pod_execute(cmd: PodCommand) -> Result<()> {
     match cmd {
         PodCommand::Run { pod_yaml } => {
-            // TODO: Implement run_pod
-            Err(anyhow!("Run pod not implemented yet"))
+            let mut runner = crate::pod_task::TaskRunner::from_file(&pod_yaml)?;
+            let (pod_sandbox_id, pod_ip) = runner.run()?;
+            info!("Pod {} started successfully with IP: {}", pod_sandbox_id, pod_ip);
+            Ok(())
         }
         PodCommand::Create { pod_yaml } => standalone::create_pod(&pod_yaml),
         PodCommand::Start { pod_name } => start_pod(&pod_name),

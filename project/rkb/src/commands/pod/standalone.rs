@@ -61,9 +61,31 @@ pub fn remove_pod_network(pid: i32) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+
+
 pub fn create_pod(pod_yaml: &str) -> Result<(), anyhow::Error> {
-    // TODO: Implement create_pod without common::TaskRunner
-    Err(anyhow!("Create pod not implemented yet"))
+    // 使用TaskRunner创建Pod
+    let mut runner = crate::pod_task::TaskRunner::from_file(pod_yaml)?;
+    let (pod_sandbox_id, pod_ip) = runner.create()?;
+    
+    // 确定root路径
+    let root_path = rootpath::determine(None, &*create_syscall())?;
+    
+    // 保存Pod信息
+    let pod_name = runner.task.metadata.name.clone();
+    let mut container_ids = Vec::new();
+    for container in &runner.task.spec.containers {
+        container_ids.push(container.name.clone());
+    }
+    
+    let pod_info = PodInfo {
+        pod_sandbox_id: pod_sandbox_id.clone(),
+        container_names: container_ids,
+    };
+    pod_info.save(&root_path, &pod_name)?;
+    
+    info!("Pod {} created successfully with PodSandbox ID: {} and IP: {}", pod_name, pod_sandbox_id, pod_ip);
+    Ok(())
 }
 
 pub fn start_pod(pod_name: &str) -> Result<(), anyhow::Error> {

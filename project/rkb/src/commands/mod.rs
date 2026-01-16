@@ -36,7 +36,6 @@ pub mod volume;
 
 // Re-export command types for use in args.rs
 pub use compose::ComposeCommand;
-pub use container::ContainerCommand;
 pub use pod::PodCommand;
 pub use volume::VolumeCommand;
 

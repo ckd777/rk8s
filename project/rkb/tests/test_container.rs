@@ -34,26 +34,28 @@ fn test_container_commands() {
         container_yaml: container_path.clone(),
         volumes: None,
     });
-    assert!(result.is_ok() || result.is_err(), "container run command should parse correctly");
+    // Note: In test environment without proper runtime setup, commands may fail
+    // We just ensure they don't panic
+    let _ = result;
     
     // Test container list command
     let result = container_execute(ContainerCommand::List {
         quiet: None,
         format: None,
     });
-    assert!(result.is_ok() || result.is_err(), "container list command should parse correctly");
+    let _ = result;
     
     // Test container state command
     let result = container_execute(ContainerCommand::State {
         container_name: container_name.to_string(),
     });
-    assert!(result.is_ok() || result.is_err(), "container state command should parse correctly");
+    let _ = result;
     
     // Test container delete command
     let result = container_execute(ContainerCommand::Delete {
         container_name: container_name.to_string(),
     });
-    assert!(result.is_ok() || result.is_err(), "container delete command should parse correctly");
+    let _ = result;
     
     // Clean up temporary files
     cleanup_temp_compose_file(&container_path).unwrap();

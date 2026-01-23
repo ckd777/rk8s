@@ -88,7 +88,7 @@
     },
     "args": [
       "sleep",
-      "100"
+      "300"
     ],
     "env": [
       "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -97,84 +97,84 @@
     "cwd": "/",
     "capabilities": {
       "bounding": [
-        "CAP_SETGID",
-        "CAP_NET_BIND_SERVICE",
-        "CAP_SETUID",
-        "CAP_SYS_CHROOT",
-        "CAP_DAC_OVERRIDE",
-        "CAP_AUDIT_WRITE",
-        "CAP_CHOWN",
-        "CAP_KILL",
-        "CAP_NET_RAW",
         "CAP_SETFCAP",
         "CAP_FSETID",
         "CAP_SETPCAP",
-        "CAP_FOWNER",
-        "CAP_MKNOD"
+        "CAP_NET_RAW",
+        "CAP_KILL",
+        "CAP_CHOWN",
+        "CAP_SETUID",
+        "CAP_NET_BIND_SERVICE",
+        "CAP_MKNOD",
+        "CAP_SETGID",
+        "CAP_SYS_CHROOT",
+        "CAP_AUDIT_WRITE",
+        "CAP_DAC_OVERRIDE",
+        "CAP_FOWNER"
       ],
       "effective": [
-        "CAP_SETGID",
-        "CAP_NET_BIND_SERVICE",
-        "CAP_SETUID",
-        "CAP_SYS_CHROOT",
-        "CAP_DAC_OVERRIDE",
-        "CAP_AUDIT_WRITE",
-        "CAP_CHOWN",
-        "CAP_KILL",
-        "CAP_NET_RAW",
         "CAP_SETFCAP",
         "CAP_FSETID",
         "CAP_SETPCAP",
-        "CAP_FOWNER",
-        "CAP_MKNOD"
+        "CAP_NET_RAW",
+        "CAP_KILL",
+        "CAP_CHOWN",
+        "CAP_SETUID",
+        "CAP_NET_BIND_SERVICE",
+        "CAP_MKNOD",
+        "CAP_SETGID",
+        "CAP_SYS_CHROOT",
+        "CAP_AUDIT_WRITE",
+        "CAP_DAC_OVERRIDE",
+        "CAP_FOWNER"
       ],
       "inheritable": [
-        "CAP_SETGID",
-        "CAP_NET_BIND_SERVICE",
-        "CAP_SETUID",
-        "CAP_SYS_CHROOT",
-        "CAP_DAC_OVERRIDE",
-        "CAP_AUDIT_WRITE",
-        "CAP_CHOWN",
-        "CAP_KILL",
-        "CAP_NET_RAW",
         "CAP_SETFCAP",
         "CAP_FSETID",
         "CAP_SETPCAP",
-        "CAP_FOWNER",
-        "CAP_MKNOD"
+        "CAP_NET_RAW",
+        "CAP_KILL",
+        "CAP_CHOWN",
+        "CAP_SETUID",
+        "CAP_NET_BIND_SERVICE",
+        "CAP_MKNOD",
+        "CAP_SETGID",
+        "CAP_SYS_CHROOT",
+        "CAP_AUDIT_WRITE",
+        "CAP_DAC_OVERRIDE",
+        "CAP_FOWNER"
       ],
       "permitted": [
-        "CAP_SETGID",
-        "CAP_NET_BIND_SERVICE",
-        "CAP_SETUID",
-        "CAP_SYS_CHROOT",
-        "CAP_DAC_OVERRIDE",
-        "CAP_AUDIT_WRITE",
-        "CAP_CHOWN",
-        "CAP_KILL",
-        "CAP_NET_RAW",
         "CAP_SETFCAP",
         "CAP_FSETID",
         "CAP_SETPCAP",
-        "CAP_FOWNER",
-        "CAP_MKNOD"
+        "CAP_NET_RAW",
+        "CAP_KILL",
+        "CAP_CHOWN",
+        "CAP_SETUID",
+        "CAP_NET_BIND_SERVICE",
+        "CAP_MKNOD",
+        "CAP_SETGID",
+        "CAP_SYS_CHROOT",
+        "CAP_AUDIT_WRITE",
+        "CAP_DAC_OVERRIDE",
+        "CAP_FOWNER"
       ],
       "ambient": [
-        "CAP_SETGID",
-        "CAP_NET_BIND_SERVICE",
-        "CAP_SETUID",
-        "CAP_SYS_CHROOT",
-        "CAP_DAC_OVERRIDE",
-        "CAP_AUDIT_WRITE",
-        "CAP_CHOWN",
-        "CAP_KILL",
-        "CAP_NET_RAW",
         "CAP_SETFCAP",
         "CAP_FSETID",
         "CAP_SETPCAP",
-        "CAP_FOWNER",
-        "CAP_MKNOD"
+        "CAP_NET_RAW",
+        "CAP_KILL",
+        "CAP_CHOWN",
+        "CAP_SETUID",
+        "CAP_NET_BIND_SERVICE",
+        "CAP_MKNOD",
+        "CAP_SETGID",
+        "CAP_SYS_CHROOT",
+        "CAP_AUDIT_WRITE",
+        "CAP_DAC_OVERRIDE",
+        "CAP_FOWNER"
       ]
     },
     "rlimits": [
@@ -190,13 +190,7 @@
   "annotations": {},
   "linux": {
     "resources": {
-      "memory": {
-        "limit": 244318208
-      },
-      "cpu": {
-        "quota": 500000,
-        "period": 1000000
-      }
+      "devices": []
     },
     "namespaces": [
       {

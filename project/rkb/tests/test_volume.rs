@@ -12,10 +12,10 @@ mod test_common;
 fn test_volume_commands() {
     let volume_name = "test-volume";
     
-    // 确保之前的测试资源已清理
+    // Ensure previous test resources are cleaned up
     cleanup_volume(volume_name).unwrap();
     
-    // 测试volume create命令
+    // Test volume create command
     let result = volume_execute(VolumeCommand::Create {
         name: volume_name.to_string(),
         driver: None,
@@ -23,33 +23,33 @@ fn test_volume_commands() {
     });
     assert!(result.is_ok() || result.is_err(), "volume create command should parse correctly");
     
-    // 测试volume ls命令
+    // Test volume ls command
     let result = volume_execute(VolumeCommand::Ls {
         quiet: false,
     });
     assert!(result.is_ok() || result.is_err(), "volume ls command should parse correctly");
     
-    // 测试volume inspect命令
+    // Test volume inspect command
     let result = volume_execute(VolumeCommand::Inspect {
         name: vec![volume_name.to_string()],
     });
     assert!(result.is_ok() || result.is_err(), "volume inspect command should parse correctly");
     
-    // 测试volume rm命令
+    // Test volume rm command
     let result = volume_execute(VolumeCommand::Rm {
         volumes: vec![volume_name.to_string()],
         force: true,
     });
     assert!(result.is_ok() || result.is_err(), "volume rm command should parse correctly");
     
-    // 清理资源
+    // Clean up resources
     cleanup_volume(volume_name).unwrap();
 }
 
 #[test]
 #[serial]
 fn test_volume_prune() {
-    // 测试volume prune命令
+    // Test volume prune command
     let result = volume_execute(VolumeCommand::Prune {
         force: true,
     });

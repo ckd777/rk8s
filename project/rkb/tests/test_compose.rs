@@ -7,7 +7,7 @@ use test_common::*;
 
 mod test_common;
 
-/// 获取测试用的compose配置
+/// Get compose configuration for testing
 fn get_compose_config(project_name: &str) -> String {
     format!(r#"name: {}
 
@@ -41,37 +41,38 @@ fn test_compose_up_and_down() {
     let project_name = "test-compose-app";
     let compose_config = get_compose_config(project_name);
     
-    // 创建临时compose文件
+    // Create temporary compose file
     let compose_path = create_temp_compose_file(&compose_config).unwrap();
     
-    // 确保之前的测试资源已清理
+    // Ensure previous test resources are cleaned up
     cleanup_compose_project(project_name).unwrap();
     
-    // 运行compose up
+    // Run compose up
     let result = compose_execute(ComposeCommand::Up(UpArgs {
         compose_yaml: Some(compose_path.clone()),
         project_name: Some(project_name.to_string()),
     }));
     
-    // 注意：由于测试环境可能没有实际的容器运行时，这里只检查命令是否能正常解析，而不检查实际运行结果
-    // 在实际环境中，应该检查容器是否正常运行
+    // Note: Since the test environment may not have an actual container runtime,
+    // we only check if the command can be parsed correctly, not the actual execution result.
+    // In a real environment, we should check if containers are running properly
     assert!(result.is_ok() || result.is_err(), "compose up command should parse correctly");
     
-    // 运行compose ps
+    // Run compose ps
     let result = compose_execute(ComposeCommand::Ps(PsArgs {
         project_name: Some(project_name.to_string()),
         compose_yaml: Some(compose_path.clone()),
     }));
     assert!(result.is_ok() || result.is_err(), "compose ps command should parse correctly");
     
-    // 运行compose down
+    // Run compose down
     let result = compose_execute(ComposeCommand::Down(DownArgs {
         project_name: Some(project_name.to_string()),
         compose_yaml: Some(compose_path.clone()),
     }));
     assert!(result.is_ok() || result.is_err(), "compose down command should parse correctly");
     
-    // 清理临时文件
+    // Clean up temporary files
     cleanup_temp_compose_file(&compose_path).unwrap();
     cleanup_compose_project(project_name).unwrap();
 }
@@ -87,7 +88,7 @@ fn test_compose_invalid_yaml() {
         project_name: Some("test-invalid".to_string()),
     }));
     
-    // 无效的yaml配置应该返回错误
+    // Invalid yaml configuration should return an error
     assert!(result.is_err(), "compose up with invalid yaml should return error");
     
     cleanup_temp_compose_file(&compose_path).unwrap();

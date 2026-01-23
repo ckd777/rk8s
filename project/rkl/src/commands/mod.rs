@@ -127,7 +127,6 @@ pub fn list(_: List, root_path: PathBuf) -> Result<()> {
     Ok(())
 }
 
-#[allow(dead_code)]
 pub fn kill(args: Kill, root_path: PathBuf) -> Result<()> {
     let mut container = load_container(root_path, &args.container_id)?;
     let signal: Signal = args.signal.as_str().try_into()?;

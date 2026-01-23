@@ -21,26 +21,28 @@ fn test_volume_commands() {
         driver: None,
         opts: None,
     });
-    assert!(result.is_ok() || result.is_err(), "volume create command should parse correctly");
+    // Note: In test environment without proper runtime setup, commands may fail
+    // We just ensure they don't panic
+    let _ = result;
     
     // Test volume ls command
     let result = volume_execute(VolumeCommand::Ls {
         quiet: false,
     });
-    assert!(result.is_ok() || result.is_err(), "volume ls command should parse correctly");
+    let _ = result;
     
     // Test volume inspect command
     let result = volume_execute(VolumeCommand::Inspect {
         name: vec![volume_name.to_string()],
     });
-    assert!(result.is_ok() || result.is_err(), "volume inspect command should parse correctly");
+    let _ = result;
     
     // Test volume rm command
     let result = volume_execute(VolumeCommand::Rm {
         volumes: vec![volume_name.to_string()],
         force: true,
     });
-    assert!(result.is_ok() || result.is_err(), "volume rm command should parse correctly");
+    let _ = result;
     
     // Clean up resources
     cleanup_volume(volume_name).unwrap();
@@ -53,5 +55,7 @@ fn test_volume_prune() {
     let result = volume_execute(VolumeCommand::Prune {
         force: true,
     });
-    assert!(result.is_ok() || result.is_err(), "volume prune command should parse correctly");
+    // Note: In test environment without proper runtime setup, commands may fail
+    // We just ensure they don't panic
+    let _ = result;
 }

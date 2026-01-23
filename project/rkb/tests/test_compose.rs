@@ -56,21 +56,21 @@ fn test_compose_up_and_down() {
     // Note: Since the test environment may not have an actual container runtime,
     // we only check if the command can be parsed correctly, not the actual execution result.
     // In a real environment, we should check if containers are running properly
-    assert!(result.is_ok() || result.is_err(), "compose up command should parse correctly");
+    let _ = result;
     
     // Run compose ps
     let result = compose_execute(ComposeCommand::Ps(PsArgs {
         project_name: Some(project_name.to_string()),
         compose_yaml: Some(compose_path.clone()),
     }));
-    assert!(result.is_ok() || result.is_err(), "compose ps command should parse correctly");
+    let _ = result;
     
     // Run compose down
     let result = compose_execute(ComposeCommand::Down(DownArgs {
         project_name: Some(project_name.to_string()),
         compose_yaml: Some(compose_path.clone()),
     }));
-    assert!(result.is_ok() || result.is_err(), "compose down command should parse correctly");
+    let _ = result;
     
     // Clean up temporary files
     cleanup_temp_compose_file(&compose_path).unwrap();

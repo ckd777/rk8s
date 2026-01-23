@@ -14,7 +14,9 @@ members = [
     "libscheduler", 
     "common",
     "slayerfs",
-    "libvault"
+    "libvault",
+    "dagrs-derive",
+    "dagrs"
 ]
 
 default-members = ["distribution", "rkl", "libbridge", "libipam", "rkb", "libnetwork", "rks"]
@@ -34,6 +36,9 @@ libruntime = { path = "libruntime" }
 rkb = { path = "rkb" }
 rkl = { path = "rkl" }
 rks = { path = "rks" }
+dagrs-derive = { path = "dagrs-derive" }
+quote = "1.0"
+proc-macro2 = "1.0"
 rfuse3 = { version = "0.0.5", features = ["tokio-runtime","unprivileged"]}
 slayerfs = { path = "slayerfs" }
 libcgroups = { version = "0.5.7", default-features = false }

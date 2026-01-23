@@ -2,6 +2,7 @@
 //!
 //! Supports SQLite and PostgreSQL backends via SeaORM
 
+use super::{TrimAction, apply_truncate_plan, trim_action};
 use crate::chuck::SliceDesc;
 use crate::meta::client::session::{Session, SessionInfo};
 use crate::meta::config::{Config, DatabaseType};
@@ -17,6 +18,7 @@ use crate::meta::store::{
     StatFsSnapshot,
 };
 use crate::meta::{INODE_ID_KEY, Permission, SLICE_ID_KEY};
+use crate::vfs::chunk_id_for;
 use crate::vfs::fs::FileType;
 use async_trait::async_trait;
 use chrono::{Duration as ChronoDuration, Utc};
@@ -536,6 +538,61 @@ impl DatabaseMetaStore {
 
     fn now_nanos() -> i64 {
         Utc::now().timestamp_nanos_opt().unwrap_or(0)
+    }
+
+    async fn prune_slices_for_truncate<C>(
+        &self,
+        conn: &C,
+        ino: i64,
+        new_size: u64,
+        old_size: u64,
+        chunk_size: u64,
+    ) -> Result<(), MetaError>
+    where
+        C: ConnectionTrait,
+    {
+        apply_truncate_plan(
+            new_size,
+            old_size,
+            chunk_size,
+            |cutoff_chunk, cutoff_offset| async move {
+                let chunk_id = chunk_id_for(ino, cutoff_chunk) as i64;
+                let rows = SliceMeta::find()
+                    .filter(slice_meta::Column::ChunkId.eq(chunk_id))
+                    .order_by_asc(slice_meta::Column::Id)
+                    .all(conn)
+                    .await
+                    .map_err(MetaError::Database)?;
+
+                for row in rows {
+                    match trim_action(row.offset as u32, row.length as u32, cutoff_offset) {
+                        TrimAction::Keep => {}
+                        TrimAction::Drop => {
+                            let active: slice_meta::ActiveModel = row.into();
+                            active.delete(conn).await.map_err(MetaError::Database)?;
+                        }
+                        TrimAction::Truncate(new_len) => {
+                            let mut active: slice_meta::ActiveModel = row.into();
+                            active.length = Set(new_len as i32);
+                            active.update(conn).await.map_err(MetaError::Database)?;
+                        }
+                    }
+                }
+                Ok(())
+            },
+            |start, end| async move {
+                let start_chunk_id = chunk_id_for(ino, start) as i64;
+                let end_chunk_id = chunk_id_for(ino, end) as i64;
+                SliceMeta::delete_many()
+                    .filter(slice_meta::Column::ChunkId.gte(start_chunk_id))
+                    .filter(slice_meta::Column::ChunkId.lt(end_chunk_id))
+                    .exec(conn)
+                    .await
+                    .map_err(MetaError::Database)?;
+                Ok(())
+            },
+        )
+        .await
     }
 
     /// Convert FileMeta to FileAttr
@@ -1194,6 +1251,13 @@ impl MetaStore for DatabaseMetaStore {
             return Err(MetaError::NotFound(ino));
         };
 
+        if file.symlink_target.is_some() {
+            txn.rollback().await.map_err(MetaError::Database)?;
+            return Err(MetaError::NotSupported(
+                "cannot create hard links to symbolic links".into(),
+            ));
+        }
+
         if file.deleted || file.nlink <= 0 {
             txn.rollback().await.map_err(MetaError::Database)?;
             return Err(MetaError::NotSupported(
@@ -1561,6 +1625,64 @@ impl MetaStore for DatabaseMetaStore {
         Ok(())
     }
 
+    async fn extend_file_size(&self, ino: i64, size: u64) -> Result<(), MetaError> {
+        let now = Self::now_nanos();
+        let result = file_meta::Entity::update_many()
+            .col_expr(
+                file_meta::Column::Size,
+                sea_query::Expr::val(size as i64).into(),
+            )
+            .col_expr(
+                file_meta::Column::ModifyTime,
+                sea_query::Expr::val(now).into(),
+            )
+            .filter(file_meta::Column::Inode.eq(ino))
+            .filter(file_meta::Column::Size.lt(size as i64))
+            .exec(&self.db)
+            .await
+            .map_err(MetaError::Database)?;
+
+        if result.rows_affected == 0 {
+            let exists = FileMeta::find_by_id(ino)
+                .one(&self.db)
+                .await
+                .map_err(MetaError::Database)?;
+            if exists.is_none() {
+                return Err(MetaError::NotFound(ino));
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn truncate(&self, ino: i64, size: u64, chunk_size: u64) -> Result<(), MetaError> {
+        let txn = self.db.begin().await.map_err(MetaError::Database)?;
+
+        let mut file_meta: file_meta::ActiveModel = FileMeta::find_by_id(ino)
+            .one(&txn)
+            .await
+            .map_err(MetaError::Database)?
+            .ok_or(MetaError::NotFound(ino))?
+            .into();
+
+        let old_size = match &file_meta.size {
+            Set(s) | Unchanged(s) => *s as u64,
+            _ => 0,
+        };
+
+        file_meta.size = Set(size as i64);
+        if old_size != size {
+            file_meta.modify_time = Set(Self::now_nanos());
+        }
+
+        file_meta.update(&txn).await.map_err(MetaError::Database)?;
+        self.prune_slices_for_truncate(&txn, ino, size, old_size, chunk_size)
+            .await?;
+
+        txn.commit().await.map_err(MetaError::Database)?;
+        Ok(())
+    }
+
     async fn set_attr(
         &self,
         ino: i64,
@@ -1748,36 +1870,40 @@ impl MetaStore for DatabaseMetaStore {
         Err(MetaError::NotFound(ino))
     }
 
-    async fn get_parent(&self, ino: i64) -> Result<Option<i64>, MetaError> {
+    async fn get_names(&self, ino: i64) -> Result<Vec<(Option<i64>, String)>, MetaError> {
         if ino == 1 {
-            return Ok(None);
+            return Ok(vec![(None, "/".to_string())]);
         }
 
-        let entry = ContentMeta::find()
+        if AccessMeta::find_by_id(ino)
+            .one(&self.db)
+            .await
+            .map_err(MetaError::Database)?
+            .is_some()
+        {
+            let entry = ContentMeta::find()
+                .filter(content_meta::Column::Inode.eq(ino))
+                .one(&self.db)
+                .await
+                .map_err(MetaError::Database)?;
+
+            return Ok(entry
+                .map(|e| vec![(Some(e.parent_inode), e.entry_name)])
+                .unwrap_or_default());
+        }
+
+        let entries = ContentMeta::find()
             .filter(content_meta::Column::Inode.eq(ino))
             .order_by_asc(content_meta::Column::ParentInode)
             .order_by_asc(content_meta::Column::EntryName)
-            .one(&self.db)
+            .all(&self.db)
             .await
             .map_err(MetaError::Database)?;
 
-        Ok(entry.map(|e| e.parent_inode))
-    }
-
-    async fn get_name(&self, ino: i64) -> Result<Option<String>, MetaError> {
-        if ino == 1 {
-            return Ok(Some("/".to_string()));
-        }
-
-        let entry = ContentMeta::find()
-            .filter(content_meta::Column::Inode.eq(ino))
-            .order_by_asc(content_meta::Column::ParentInode)
-            .order_by_asc(content_meta::Column::EntryName)
-            .one(&self.db)
-            .await
-            .map_err(MetaError::Database)?;
-
-        Ok(entry.map(|e| e.entry_name))
+        Ok(entries
+            .into_iter()
+            .map(|e| (Some(e.parent_inode), e.entry_name))
+            .collect())
     }
 
     async fn open(&self, ino: i64, flags: OpenFlags) -> Result<FileAttr, MetaError> {
@@ -1861,40 +1987,51 @@ impl MetaStore for DatabaseMetaStore {
         }
     }
 
-    async fn get_path(&self, ino: i64) -> Result<Option<String>, MetaError> {
+    async fn get_paths(&self, ino: i64) -> Result<Vec<String>, MetaError> {
         if ino == 1 {
-            return Ok(Some("/".to_string()));
+            return Ok(vec!["/".to_string()]);
         }
 
-        let mut path_parts = Vec::new();
-        let mut current_ino = ino;
+        let names = self.get_names(ino).await?;
+        let mut out = Vec::with_capacity(names.len());
 
-        loop {
-            let entry = ContentMeta::find()
-                .filter(content_meta::Column::Inode.eq(current_ino))
-                .order_by_asc(content_meta::Column::ParentInode)
-                .order_by_asc(content_meta::Column::EntryName)
-                .one(&self.db)
-                .await
-                .map_err(MetaError::Database)?;
-
-            let Some(entry) = entry else {
-                return Ok(None);
+        for (parent_opt, name) in names {
+            let Some(parent) = parent_opt else {
+                continue;
             };
 
-            path_parts.push(entry.entry_name);
+            let mut path_parts = vec![name];
+            let mut current_ino = parent;
 
-            let parent = entry.parent_inode;
-            if parent == 1 {
-                break;
+            while current_ino != 1 {
+                let entry = ContentMeta::find()
+                    .filter(content_meta::Column::Inode.eq(current_ino))
+                    .order_by_asc(content_meta::Column::ParentInode)
+                    .order_by_asc(content_meta::Column::EntryName)
+                    .one(&self.db)
+                    .await
+                    .map_err(MetaError::Database)?;
+
+                let Some(entry) = entry else {
+                    path_parts.clear();
+                    break;
+                };
+
+                path_parts.push(entry.entry_name);
+                current_ino = entry.parent_inode;
             }
 
-            current_ino = parent;
+            if path_parts.is_empty() {
+                continue;
+            }
+
+            path_parts.reverse();
+            out.push(format!("/{}", path_parts.join("/")));
         }
 
-        path_parts.reverse();
-        let path = format!("/{}", path_parts.join("/"));
-        Ok(Some(path))
+        out.sort();
+        out.dedup();
+        Ok(out)
     }
 
     fn root_ino(&self) -> i64 {
@@ -1945,10 +2082,6 @@ impl MetaStore for DatabaseMetaStore {
             .await
             .map_err(MetaError::Database)?
             .ok_or(MetaError::NotFound(ino))?;
-
-        // Note: In database design, files and directories are stored in different tables.
-        // Files are stored in file_meta table, directories in access_meta table.
-        // So if we found a record in file_meta table, it must be a file.
 
         // Check if the file is marked as deleted
         if !file_meta.deleted {
@@ -2469,6 +2602,75 @@ mod tests {
             link_parents.is_empty(),
             "All LinkParent entries should be cleaned up"
         );
+    }
+
+    #[tokio::test]
+    async fn test_hardlink_dentry_binding_cross_dir_rename_unlink() {
+        let store = new_test_store().await;
+        let root = store.root_ino();
+
+        let dir_a = store.mkdir(root, "a".to_string()).await.unwrap();
+        let dir_b = store.mkdir(root, "b".to_string()).await.unwrap();
+
+        let ino = store.create_file(dir_a, "x".to_string()).await.unwrap();
+        store.link(ino, dir_b, "y").await.unwrap();
+
+        let names = store.get_names(ino).await.unwrap();
+        assert!(names.contains(&(Some(dir_a), "x".to_string())));
+        assert!(names.contains(&(Some(dir_b), "y".to_string())));
+
+        assert_eq!(store.lookup(dir_a, "x").await.unwrap(), Some(ino));
+        assert_eq!(store.lookup(dir_b, "y").await.unwrap(), Some(ino));
+
+        store
+            .rename(dir_b, "y", dir_b, "z".to_string())
+            .await
+            .unwrap();
+
+        let names = store.get_names(ino).await.unwrap();
+        assert!(names.contains(&(Some(dir_a), "x".to_string())));
+        assert!(names.contains(&(Some(dir_b), "z".to_string())));
+        assert!(!names.contains(&(Some(dir_b), "y".to_string())));
+
+        assert_eq!(store.lookup(dir_b, "y").await.unwrap(), None);
+        assert_eq!(store.lookup(dir_b, "z").await.unwrap(), Some(ino));
+        assert_eq!(store.lookup(dir_a, "x").await.unwrap(), Some(ino));
+
+        store.unlink(dir_a, "x").await.unwrap();
+
+        let names = store.get_names(ino).await.unwrap();
+        assert_eq!(names, vec![(Some(dir_b), "z".to_string())]);
+        assert_eq!(store.lookup(dir_b, "z").await.unwrap(), Some(ino));
+    }
+
+    #[tokio::test]
+    async fn test_hardlink_dentry_binding_cross_dir_move_rename() {
+        let store = new_test_store().await;
+        let root = store.root_ino();
+
+        let dir_a = store.mkdir(root, "a".to_string()).await.unwrap();
+        let dir_b = store.mkdir(root, "b".to_string()).await.unwrap();
+        let dir_c = store.mkdir(root, "c".to_string()).await.unwrap();
+
+        let ino = store.create_file(dir_a, "x".to_string()).await.unwrap();
+        store.link(ino, dir_b, "y").await.unwrap();
+
+        assert_eq!(store.lookup(dir_a, "x").await.unwrap(), Some(ino));
+        assert_eq!(store.lookup(dir_b, "y").await.unwrap(), Some(ino));
+
+        store
+            .rename(dir_b, "y", dir_c, "z".to_string())
+            .await
+            .unwrap();
+
+        let names = store.get_names(ino).await.unwrap();
+        assert!(names.contains(&(Some(dir_a), "x".to_string())));
+        assert!(names.contains(&(Some(dir_c), "z".to_string())));
+        assert!(!names.contains(&(Some(dir_b), "y".to_string())));
+
+        assert_eq!(store.lookup(dir_b, "y").await.unwrap(), None);
+        assert_eq!(store.lookup(dir_c, "z").await.unwrap(), Some(ino));
+        assert_eq!(store.lookup(dir_a, "x").await.unwrap(), Some(ino));
     }
 
     #[tokio::test]

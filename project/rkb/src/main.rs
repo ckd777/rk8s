@@ -67,10 +67,10 @@ fn main() -> Result<()> {
                         cgroup: args.cgroup,
                     },
                 },
-                root_path.as_ref().map(|p| p.into())
+                root_path.as_ref().map(|p| p.into()),
             )?;
             std::process::exit(exit_code)
-        },
+        }
         Commands::Login(args) => login::login(args),
         Commands::Logout(args) => logout::logout(args),
         Commands::Mount(args) => overlayfs::do_mount(args),

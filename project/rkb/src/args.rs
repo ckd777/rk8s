@@ -1,5 +1,5 @@
-use crate::{copy, image, login, logout, overlayfs, pull, push, repo, run,};
 use crate::commands::{ComposeCommand, PodCommand, VolumeCommand};
+use crate::{copy, image, login, logout, overlayfs, pull, push, repo, run};
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
@@ -178,7 +178,9 @@ where
     Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
 }
 
-fn parse_user<T, U>(s: &str) -> Result<(T, Option<U>), Box<dyn std::error::Error + Send + Sync + 'static>>
+fn parse_user<T, U>(
+    s: &str,
+) -> Result<(T, Option<U>), Box<dyn std::error::Error + Send + Sync + 'static>>
 where
     T: std::str::FromStr,
     T::Err: std::error::Error + Send + Sync + 'static,

@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+pub mod commands;
 mod compressor;
 mod config;
 mod image;
@@ -14,4 +15,3 @@ mod rt;
 mod storage;
 mod task;
 mod utils;
-pub mod commands;

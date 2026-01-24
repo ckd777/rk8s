@@ -12,20 +12,20 @@ use libcontainer::syscall::syscall::create_syscall;
 pub fn delete_pod(pod_name: &str) -> Result<(), anyhow::Error> {
     let root_path = rootpath::determine(None, &*create_syscall())?;
     let pod_info = PodInfo::load(&root_path, pod_name)?;
-    
+
     // Try to get PID from pause container for network cleanup
     let mut pause_pid = None;
     if let Ok(container) = load_container(root_path.clone(), &pod_info.pod_sandbox_id) {
         pause_pid = container.state.pid;
     }
-    
+
     // Remove network if we have pause PID
     if let Some(pid) = pause_pid {
         if let Err(e) = remove_pod_network(pid) {
             error!("Failed to remove network for Pod {}: {}", pod_name, e);
         }
     }
-    
+
     // Delete all containers
     for container_name in &pod_info.container_names {
         let delete_args = Delete {
@@ -74,28 +74,33 @@ pub fn remove_pod_network(pid: i32) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-
-
 pub fn run_pod(pod_yaml: &str) -> Result<(), anyhow::Error> {
     let mut runner = crate::pod_task::TaskRunner::from_file(pod_yaml)?;
     let pod_name = runner.task.metadata.name.clone();
     let root_path = rootpath::determine(None, &*create_syscall())?;
-    
+
     // Check if pod already exists
     if PodInfo::load(&root_path, &pod_name).is_ok() {
         info!("Pod {} already exists, cleaning up first", pod_name);
         // Try to delete existing pod
         if let Err(e) = delete_pod(&pod_name) {
             error!("Failed to cleanup existing pod {}: {}", pod_name, e);
-            return Err(anyhow!("Pod {} already exists and cleanup failed: {}", pod_name, e));
+            return Err(anyhow!(
+                "Pod {} already exists and cleanup failed: {}",
+                pod_name,
+                e
+            ));
         }
     }
-    
+
     // Also check if containers exist at the youki level without pod info
     // This handles the case where pod info was lost but containers still exist
     let pod_sandbox_id_check = pod_name.clone();
     if let Ok(_container) = load_container(root_path.clone(), &pod_sandbox_id_check) {
-        info!("Found orphaned container {}, cleaning up", pod_sandbox_id_check);
+        info!(
+            "Found orphaned container {}, cleaning up",
+            pod_sandbox_id_check
+        );
         let delete_args = Delete {
             container_id: pod_sandbox_id_check.clone(),
             force: true,
@@ -104,7 +109,7 @@ pub fn run_pod(pod_yaml: &str) -> Result<(), anyhow::Error> {
             error!("Failed to delete orphaned pause container: {}", e);
         }
     }
-    
+
     // Check for orphaned application containers
     for container in &runner.task.spec.containers {
         let container_id = container.name.clone();
@@ -115,26 +120,32 @@ pub fn run_pod(pod_yaml: &str) -> Result<(), anyhow::Error> {
                 force: true,
             };
             if let Err(e) = delete(delete_args, root_path.clone()) {
-                error!("Failed to delete orphaned container {}: {}", container_id, e);
+                error!(
+                    "Failed to delete orphaned container {}: {}",
+                    container_id, e
+                );
             }
         }
     }
-    
+
     let (pod_sandbox_id, pod_ip) = runner.run()?;
-    
+
     // Save pod info for future management
     let mut container_ids = Vec::new();
     for container in &runner.task.spec.containers {
         container_ids.push(container.name.clone());
     }
-    
+
     let pod_info = PodInfo {
         pod_sandbox_id: pod_sandbox_id.clone(),
         container_names: container_ids,
     };
     pod_info.save(&root_path, &pod_name)?;
-    
-    info!("Pod {} started successfully with PodSandbox ID: {} and IP: {}", pod_name, pod_sandbox_id, pod_ip);
+
+    info!(
+        "Pod {} started successfully with PodSandbox ID: {} and IP: {}",
+        pod_name, pod_sandbox_id, pod_ip
+    );
     Ok(())
 }
 
@@ -147,11 +158,15 @@ pub fn create_pod(pod_yaml: &str) -> Result<(), anyhow::Error> {
     if PodInfo::load(&root_path, &pod_name).is_ok() {
         return Err(anyhow!("Pod {} already exists", pod_name));
     }
-    
+
     // Also check if containers exist at the youki level without pod info
     let pod_sandbox_id_check = pod_name.clone();
     if let Ok(_container) = load_container(root_path.clone(), &pod_sandbox_id_check) {
-        return Err(anyhow!("Container {} already exists (orphaned). Please clean up first with 'rkb delete {}'", pod_sandbox_id_check, pod_sandbox_id_check));
+        return Err(anyhow!(
+            "Container {} already exists (orphaned). Please clean up first with 'rkb delete {}'",
+            pod_sandbox_id_check,
+            pod_sandbox_id_check
+        ));
     }
 
     let pod_request = task_runner.build_run_pod_sandbox_request();

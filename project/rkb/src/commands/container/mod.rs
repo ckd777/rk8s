@@ -627,7 +627,7 @@ pub fn remove_container(root_path: &Path, state: &State) -> Result<()> {
     Ok(())
 }
 
-pub fn remove_container_network(pid: Pid) -> Result<()> {
+pub fn remove_container_network(_pid: Pid) -> Result<()> {
     // TODO: Implement network removal without get_cni
     Ok(())
 }

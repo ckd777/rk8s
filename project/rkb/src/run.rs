@@ -37,7 +37,7 @@ pub fn exec_internal(args: ExecInternalArgs) -> Result<()> {
     let envp_json = general_purpose::STANDARD
         .decode(&args.envp_base64)
         .context("Failed to decode envp from base64")?;
-    let envp: Vec<String> = 
+    let envp: Vec<String> =
         serde_json::from_slice(&envp_json).context("Failed to deserialize envp from json")?;
     let envp = envp
         .iter()

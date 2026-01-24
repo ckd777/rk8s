@@ -125,7 +125,9 @@ impl VolumeManager {
                 PatternType::Anonymous => {
                     let name = generate_anonymous_volume_name();
                     let resp = self.create_(name.clone(), None, HashMap::new())?;
-                    mount.host_path = resp.mountpoint.to_str()
+                    mount.host_path = resp
+                        .mountpoint
+                        .to_str()
                         .ok_or_else(|| anyhow!("invalid mountpoint path"))?
                         .to_string();
                     volume_name = name;
@@ -161,7 +163,7 @@ impl VolumeManager {
             .volumes
             .get(name)
             .ok_or_else(|| anyhow!("volume {} does not exist", name))?;
-        
+
         volume
             .mountpoint
             .to_str()
@@ -214,7 +216,9 @@ impl VolumeManager {
 
         println!("{}", name);
 
-        let parent_path = volume.mountpoint.parent()
+        let parent_path = volume
+            .mountpoint
+            .parent()
             .ok_or_else(|| anyhow!("invalid mountpoint path for volume {}", name))?;
         fs::remove_dir_all(parent_path)?;
         self.volumes.remove(name);
@@ -255,15 +259,16 @@ impl VolumeManager {
         if !root_path.exists() {
             return Ok(false);
         }
-        
+
         for entry in fs::read_dir(&root_path)? {
             let entry = entry?;
             let metadata = entry.metadata()?;
             if metadata.is_dir() {
                 let file_name = entry.file_name();
-                let name_str = file_name.to_str()
+                let name_str = file_name
+                    .to_str()
                     .ok_or_else(|| anyhow!("invalid directory name"))?;
-                
+
                 // Skip compose directory as it's handled separately
                 if name_str != "compose" {
                     let state_file = entry.path().join("state.json");

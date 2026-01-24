@@ -71,7 +71,7 @@ impl PodInfo {
     pub fn load(root_path: &Path, pod_name: &str) -> Result<Self> {
         // get path like pods/podname
         let pod_info_path = root_path.join("pods").join(pod_name);
-        let mut file = 
+        let mut file =
             File::open(&pod_info_path).map_err(|_| anyhow!("Pod {} not found", pod_name))?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
@@ -152,7 +152,7 @@ pub fn pod_execute(cmd: PodCommand) -> Result<()> {
 fn pod_list() -> Result<()> {
     let root_path = rootpath::determine(None, &*create_syscall())?;
     let pods_dir = root_path.join("pods");
-    
+
     if !pods_dir.exists() {
         println!("No pods found");
         return Ok(());
@@ -170,7 +170,7 @@ fn pod_list() -> Result<()> {
 
     println!("{:<20} {:<40} {:<20}", "NAME", "SANDBOX_ID", "CONTAINERS");
     println!("{:-<80}", "");
-    
+
     for entry in entries {
         let pod_name = entry.file_name().to_string_lossy().to_string();
         match PodInfo::load(&root_path, &pod_name) {
@@ -191,6 +191,6 @@ fn pod_list() -> Result<()> {
             }
         }
     }
-    
+
     Ok(())
 }

@@ -1,5 +1,5 @@
+use anyhow::{Result, anyhow};
 use std::{env, fs, path::Path};
-use anyhow::{anyhow, Result};
 
 /// Get the path to the busybox image for testing
 pub fn bundles_path(image_name: &str) -> String {

@@ -25,7 +25,7 @@ pub enum Commands {
     /// Delete one or more containers
     Delete(DeleteArgs),
     /// Execute a command in a running container
-    Exec(ExecArgs),
+    Exec(Box<ExecArgs>),
     /// Login to distribution server
     Login(login::LoginArgs),
     /// Logout from distribution server

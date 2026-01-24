@@ -292,12 +292,12 @@ impl VolumeManager {
                 let dir_entry = dir_entry?;
                 if dir_entry.metadata()?.is_dir() {
                     let metadata_file = dir_entry.path().join("metadata.json");
-                    if metadata_file.exists() {
-                        if let Ok(content) = fs::read_to_string(&metadata_file) {
-                            // Simple check: see if volume name appears in metadata
-                            if content.contains(name) {
-                                return Ok(true);
-                            }
+                    if metadata_file.exists()
+                        && let Ok(content) = fs::read_to_string(&metadata_file)
+                    {
+                        // Simple check: see if volume name appears in metadata
+                        if content.contains(name) {
+                            return Ok(true);
                         }
                     }
                 }

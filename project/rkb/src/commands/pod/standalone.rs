@@ -20,10 +20,10 @@ pub fn delete_pod(pod_name: &str) -> Result<(), anyhow::Error> {
     }
 
     // Remove network if we have pause PID
-    if let Some(pid) = pause_pid {
-        if let Err(e) = remove_pod_network(pid) {
-            error!("Failed to remove network for Pod {}: {}", pod_name, e);
-        }
+    if let Some(pid) = pause_pid
+        && let Err(e) = remove_pod_network(pid)
+    {
+        error!("Failed to remove network for Pod {}: {}", pod_name, e);
     }
 
     // Delete all containers

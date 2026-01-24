@@ -42,6 +42,7 @@ fn main() -> Result<()> {
         Commands::Create(args) => container::create_container(&args.container_yaml, args.volumes),
         Commands::Delete(args) => container::delete_container(&args.container_name),
         Commands::Exec(args) => {
+            let args = *args; // Unbox
             let root_path = args.root_path.clone();
             let exit_code = container::exec_container(
                 crate::commands::ExecContainer {

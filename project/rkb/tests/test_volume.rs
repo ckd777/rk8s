@@ -1,6 +1,4 @@
-use anyhow::Result;
 use serial_test::serial;
-use std::path::Path;
 
 use rkb::commands::volume::{VolumeCommand, volume_execute};
 use test_common::*;

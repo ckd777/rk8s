@@ -1,13 +1,15 @@
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 use std::{env, fs, path::Path};
 
 /// Get the path to the busybox image for testing
+#[allow(dead_code)]
 pub fn bundles_path(image_name: &str) -> String {
     // In actual test environment, this should be replaced with real image path
     format!("test/bundles/{}", image_name)
 }
 
 /// Create temporary compose configuration file
+#[allow(dead_code)]
 pub fn create_temp_compose_file(content: &str) -> Result<String> {
     let temp_dir = env::temp_dir();
     let compose_path = temp_dir.join("test-compose.yaml");
@@ -16,6 +18,7 @@ pub fn create_temp_compose_file(content: &str) -> Result<String> {
 }
 
 /// Clean up temporary compose configuration file
+#[allow(dead_code)]
 pub fn cleanup_temp_compose_file(path: &str) -> Result<()> {
     let path = Path::new(path);
     if path.exists() {
@@ -25,6 +28,7 @@ pub fn cleanup_temp_compose_file(path: &str) -> Result<()> {
 }
 
 /// Clean up compose project
+#[allow(dead_code)]
 pub fn cleanup_compose_project(project_name: &str) -> Result<()> {
     let compose_dir = Path::new("/run/youki/compose").join(project_name);
     if compose_dir.exists() {
@@ -34,6 +38,7 @@ pub fn cleanup_compose_project(project_name: &str) -> Result<()> {
 }
 
 /// Clean up container
+#[allow(dead_code)]
 pub fn cleanup_container(container_id: &str) -> Result<()> {
     let container_dir = Path::new("/run/youki").join(container_id);
     if container_dir.exists() {
@@ -43,6 +48,7 @@ pub fn cleanup_container(container_id: &str) -> Result<()> {
 }
 
 /// Clean up volume
+#[allow(dead_code)]
 pub fn cleanup_volume(volume_name: &str) -> Result<()> {
     let volume_dir = Path::new("/var/lib/rkl/volumes").join(volume_name);
     if volume_dir.exists() {
@@ -52,6 +58,7 @@ pub fn cleanup_volume(volume_name: &str) -> Result<()> {
 }
 
 /// Clean up pod
+#[allow(dead_code)]
 pub fn cleanup_pod(pod_name: &str) -> Result<()> {
     let pod_dir = Path::new("/run/youki/pods").join(pod_name);
     if pod_dir.exists() {

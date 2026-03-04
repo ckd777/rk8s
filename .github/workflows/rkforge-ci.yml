@@ -13,19 +13,6 @@ on:
       - "project/Cargo.toml"
       - "project/Cargo.lock"
       - ".github/workflows/rkforge-ci.yml"
-  push:
-    branches: ["main"]
-    paths:
-      - "project/rkforge/**"
-      - "project/common/**"
-      - "project/libbridge/**"
-      - "project/libipam/**"
-      - "project/libruntime/**"
-      - "project/libcontainer/**"
-      - "project/libcni/**"
-      - "project/Cargo.toml"
-      - "project/Cargo.lock"
-      - ".github/workflows/rkforge-ci.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -95,79 +82,6 @@ jobs:
             project/target
             ~/.local/share/qlean
           key: rkforge-${{ runner.os }}-${{ hashFiles('project/Cargo.lock') }}
-
-      - name: Ensure qlean prerequisites
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          SUDO=""
-          if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
-            SUDO="sudo"
-          fi
-
-          if [ -f /etc/os-release ]; then
-            cat /etc/os-release
-          fi
-
-          if command -v apt-get >/dev/null 2>&1 && [ -n "$SUDO" ]; then
-            $SUDO apt-get update
-            $SUDO apt-get install -y --no-install-recommends \
-              qemu-system-x86 \
-              qemu-system-common \
-              qemu-utils \
-              libvirt-clients \
-              libvirt-daemon-system \
-              libguestfs-tools \
-              xorriso
-          fi
-
-          for bin in qemu-system-x86_64 qemu-img xorriso sha256sum sha512sum guestfish virt-copy-out virsh; do
-            command -v "$bin" >/dev/null 2>&1 || (echo "missing: $bin" && exit 1)
-          done
-
-          if [ -n "$SUDO" ] && command -v systemctl >/dev/null 2>&1; then
-            $SUDO systemctl start libvirtd || $SUDO systemctl start libvirt-daemon || true
-          fi
-
-          virsh -c qemu:///system net-list --all >/dev/null 2>&1 || {
-            echo "virsh cannot connect to qemu:///system (libvirt not running or permission denied)"
-            echo "Hint: ensure libvirtd is running and the runner user can access /var/run/libvirt/libvirt-sock"
-            exit 1
-          }
-
-          if [ ! -e /dev/kvm ]; then
-            echo "/dev/kvm is missing; qlean requires KVM on the runner"
-            exit 1
-          fi
-
-      - name: Configure qemu-bridge-helper for qlean
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          helper=""
-          for p in \
-            /usr/lib/qemu/qemu-bridge-helper \
-            /usr/libexec/qemu/qemu-bridge-helper \
-            /usr/libexec/qemu-bridge-helper; do
-            if [ -x "$p" ]; then
-              helper="$p"
-              break
-            fi
-          done
-
-          if [ -z "$helper" ]; then
-            echo "qemu-bridge-helper not found; qlean multi-machine networking may not work"
-            exit 1
-          fi
-
-          sudo chmod u-s "$helper" || true
-          sudo setcap cap_net_admin+ep "$helper"
-
-          sudo mkdir -p /etc/qemu
-          echo "allow qlbr0" | sudo tee /etc/qemu/bridge.conf >/dev/null
-          sudo chmod 644 /etc/qemu/bridge.conf
 
       - name: Run rkforge unit tests
         shell: bash

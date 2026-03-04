@@ -101,7 +101,8 @@ USER 1000:1000
         .instructions
         .iter()
         .filter_map(|i| {
-            if let Instruction::Misc(misc) = i && misc.instruction.content.eq_ignore_ascii_case("USER")
+            if let Instruction::Misc(misc) = i
+                && misc.instruction.content.eq_ignore_ascii_case("USER")
             {
                 return Some(extract_misc_argument(misc));
             }

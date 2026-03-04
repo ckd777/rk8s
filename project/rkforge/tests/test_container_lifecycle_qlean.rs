@@ -1,3 +1,9 @@
+//! Container lifecycle integration tests using qlean VMs.
+//!
+//! These tests run inside a QEMU/KVM virtual machine using the qlean crate.
+//! NOTE: qlean 0.2.2+ supports TCG fallback when KVM is unavailable,
+//! so these tests can run on GitHub Actions runners without nested virtualization.
+
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;

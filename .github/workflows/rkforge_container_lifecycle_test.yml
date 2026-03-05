@@ -66,4 +66,4 @@ jobs:
         run: |
           cd project
           cargo build -p libbridge -p libipam
-          RUST_LOG=qlean=info cargo test -p rkforge --test test_container_lifecycle_qlean -- --nocapture
+          cargo test -p rkforge --test test_container_lifecycle_qlean -- --nocapture

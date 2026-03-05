@@ -43,7 +43,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            project/target
+            # project/target
           key: rkforge-${{ runner.os }}-${{ hashFiles('project/Cargo.lock') }}
 
       # Set up qlean prerequisites is unnecessary here as the self-hosted runner is already configured with the necessary dependencies and permissions to run qlean tests.
